@@ -3,23 +3,11 @@
 import FAQ from "../components/site/FAQ";
 import Hero from "../components/site/Hero";
 import { motion } from "framer-motion";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 
 export default function HomePage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
   const handleMySpaceClick = () => {
-    if (session?.user) {
-      if (session.user.role === "PROFESSIONNEL") {
-        router.push("/dashboard/dashboard-professionnel");
-      } else if (session.user.role === "PROPRIETAIRE") {
-        router.push("/dashboard/proprio");
-      } else {
-        router.push("/dashboard");
-      }
-    }
+    // Redirection simple sans session pour l'instant
+    window.location.href = "/auth/login";
   };
 
   return (
@@ -665,32 +653,21 @@ export default function HomePage() {
             viewport={{ once: true }}
           >
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {session?.user ? (
-                <button
-                  onClick={handleMySpaceClick}
-                  className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#1B263B] shadow-sm hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                >
-                  Mon espace
-                </button>
-              ) : (
-                <>
-                  <a
-                    href="/auth/login"
-                    className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#1B263B] shadow-sm hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                  >
-                    Se connecter
-                  </a>
-                  <a
-                    href="/onboarding?role=pro"
-                    className="inline-flex items-center justify-center rounded-lg bg-[#F86F4D] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#F86F4D]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F86F4D]"
-                  >
-                    S&apos;inscrire en tant que professionnel
-                    <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </a>
-                </>
-              )}
+              <a
+                href="/auth/login"
+                className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3 text-sm font-semibold text-[#1B263B] shadow-sm hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Se connecter
+              </a>
+              <a
+                href="/onboarding?role=pro"
+                className="inline-flex items-center justify-center rounded-lg bg-[#F86F4D] px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#F86F4D]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F86F4D]"
+              >
+                S&apos;inscrire en tant que professionnel
+                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
             </div>
           </motion.div>
         </div>
