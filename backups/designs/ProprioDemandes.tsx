@@ -1,0 +1,635 @@
+"use client";
+
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { XMarkIcon, EyeIcon, HeartIcon } from "@heroicons/react/24/outline";
+
+interface RendezVous {
+  id: string;
+  pro: {
+    nom: string;
+    metier: string;
+    ville: string;
+  };
+  cheval: {
+    nom: string;
+    race: string;
+    age: string;
+  };
+  date: string;
+  heure: string;
+  type: string;
+  motif: string;
+  statut: "pending" | "accepted" | "rejected" | "completed";
+  description: string;
+  adresse: string;
+  compteRendu?: {
+    etatGeneral: string;
+    observations: string;
+    procedures: string;
+    medicaments: string;
+    recommandations: string;
+    suivi: string;
+  };
+  compteRenduDate?: string;
+  creneauxAlternatifs?: { date: string; heure: string }[];
+}
+
+// Données de démonstration
+// Données des rendez-vous (vide - sera rempli par l'API)
+const mockRendezVous: RendezVous[] = [
+  // Données de test pour vérifier l'affichage des compte-rendus
+  {
+    id: "1",
+    pro: {
+      nom: "Dr. Martin Vétérinaire",
+      metier: "Vétérinaire équin",
+      ville: "Paris"
+    },
+    cheval: {
+      nom: "Bella",
+      race: "Pur-sang",
+      age: "8 ans"
+    },
+    date: "2024-01-15",
+    heure: "14:00",
+    type: "Consultation",
+    motif: "Contrôle de routine",
+    statut: "completed",
+    description: "Contrôle de routine annuel avec vaccination",
+    adresse: "Centre équestre de Paris, 75012 Paris",
+    compteRendu: {
+      etatGeneral: "L'équidé présente un bon état général. Température normale, appétit conservé, comportement habituel.",
+      observations: "Examen clinique complet effectué. Auscultation cardiaque et pulmonaire normales. Dentition en bon état.",
+      procedures: "Vaccination contre la grippe équine et le tétanos. Vermifugation préventive.",
+      medicaments: "Vaccin Equilis Prequenza Te (2ml IM), Praziquantel 1g (administration orale)",
+      recommandations: "Surveiller l'appétit et le comportement pendant 48h. Éviter les efforts intenses pendant 2 jours.",
+      suivi: "Prochaine visite prévue dans 12 mois pour le contrôle annuel et rappel vaccinal."
+    },
+    compteRenduDate: "2024-01-15T16:30:00Z"
+  },
+  {
+    id: "2", 
+    pro: {
+      nom: "Maréchal-ferrant Expert",
+      metier: "Maréchal-ferrant",
+      ville: "Lyon"
+    },
+    cheval: {
+      nom: "Storm",
+      race: "Quarter Horse",
+      age: "12 ans"
+    },
+    date: "2024-01-10",
+    heure: "09:00",
+    type: "Ferrage",
+    motif: "Ferrage trimestriel",
+    statut: "completed",
+    description: "Ferrage complet des 4 pieds avec parage",
+    adresse: "Écurie des Étoiles, 69000 Lyon",
+    compteRendu: {
+      etatGeneral: "L'équidé est en bonne condition générale. Pieds en bon état malgré une usure normale.",
+      observations: "Pieds droits, corne de bonne qualité. Parage effectué pour équilibrer les aplombs.",
+      procedures: "Parage complet des 4 pieds, pose de fers neufs (taille 2), vérification des aplombs.",
+      medicaments: "Aucun médicament administré",
+      recommandations: "Surveiller la marche et la boiterie. Éviter les terrains glissants pendant 24h.",
+      suivi: "Prochain ferrage prévu dans 6-8 semaines selon l'usure."
+    },
+    compteRenduDate: "2024-01-10T11:15:00Z"
+  }
+];
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
+const getStatutColor = (statut: string) => {
+  switch (statut) {
+    case "pending":
+      return "bg-yellow-100 text-yellow-800";
+    case "accepted":
+      return "bg-green-100 text-green-800";
+    case "rejected":
+      return "bg-red-100 text-red-800";
+    case "completed":
+      return "bg-blue-100 text-blue-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
+const getStatutLabel = (statut: string) => {
+  switch (statut) {
+    case "pending":
+      return "En attente";
+    case "accepted":
+      return "À venir";
+    case "rejected":
+      return "Refusé";
+    case "completed":
+      return "Terminé";
+    default:
+      return "Inconnu";
+  }
+};
+
+export default function ProprioDemandes() {
+  const [rendezVous, setRendezVous] = useState<RendezVous[]>(mockRendezVous);
+  const [activeTab, setActiveTab] = useState('en-attente');
+  const [selectedRdv, setSelectedRdv] = useState<RendezVous | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCompteRenduModalOpen, setIsCompteRenduModalOpen] = useState(false);
+
+  const handleCancelDemande = (id: string) => {
+    setRendezVous(prev => prev.filter(d => d.id !== id));
+  };
+
+  const handleVoirDetails = (rdv: RendezVous) => {
+    setSelectedRdv(rdv);
+    setIsModalOpen(true);
+  };
+
+  const handleVoirCompteRendu = (rdv: RendezVous) => {
+    setSelectedRdv(rdv);
+    setIsCompteRenduModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedRdv(null);
+  };
+
+  const closeCompteRenduModal = () => {
+    setIsCompteRenduModalOpen(false);
+    setSelectedRdv(null);
+  };
+
+  const rendezVousEnAttente = rendezVous.filter(d => d.statut === "pending");
+  const rendezVousAvenir = rendezVous.filter(d => d.statut === "accepted");
+  const rendezVousRefuses = rendezVous.filter(d => d.statut === "rejected");
+  const rendezVousTermines = rendezVous.filter(d => d.statut === "completed");
+
+  const getFilteredRendezVous = () => {
+    switch (activeTab) {
+      case 'en-attente':
+        return rendezVousEnAttente;
+      case 'a-venir':
+        return rendezVousAvenir;
+      case 'refuses':
+        return rendezVousRefuses;
+      case 'termines':
+        return rendezVousTermines;
+      default:
+        return rendezVousEnAttente;
+    }
+  };
+
+  const tabs = [
+    { id: 'en-attente', label: 'Demandes', count: rendezVousEnAttente.length },
+    { id: 'a-venir', label: 'À venir', count: rendezVousAvenir.length },
+    { id: 'refuses', label: 'Refusés', count: rendezVousRefuses.length },
+    { id: 'termines', label: 'Terminés', count: rendezVousTermines.length },
+  ];
+
+  return (
+    <div className="space-y-6 overflow-x-hidden w-full max-w-full">
+      {/* En-tête */}
+      <div className="bg-white rounded-lg border border-[#1B263B]/10 p-4 sm:p-6 w-full">
+        <h1 className="text-xl sm:text-2xl font-bold text-[#1B263B] mb-2">
+          Mes rendez-vous
+        </h1>
+        <p className="text-[#1B263B]/70">
+          Gérez tous vos rendez-vous avec les professionnels.
+        </p>
+      </div>
+
+      {/* Statistiques */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+        {tabs.map((tab) => (
+          <div key={tab.id} className="bg-white rounded-lg border border-[#1B263B]/10 p-3 w-full">
+            <div className="flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-xs sm:text-sm font-medium text-[#1B263B]/70">{tab.label}</p>
+                  <p className="text-lg sm:text-xl font-bold text-[#1B263B]">{tab.count}</p>
+                </div>
+                <div className={`p-1.5 sm:p-2 rounded-lg ${
+                  tab.id === 'en-attente' ? 'bg-yellow-100' :
+                  tab.id === 'a-venir' ? 'bg-green-100' :
+                  tab.id === 'refuses' ? 'bg-red-100' :
+                  'bg-blue-100'
+                }`}>
+                  {tab.id === 'en-attente' && (
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                  )}
+                  {tab.id === 'a-venir' && (
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                  )}
+                  {tab.id === 'refuses' && (
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                  )}
+                  {tab.id === 'termines' && (
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                  )}
+              </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Onglets */}
+      <div className="w-full">
+        <div className="flex flex-col sm:flex-row w-full gap-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3 py-2 text-sm font-medium transition-colors w-full sm:w-auto text-left sm:text-center ${
+                activeTab === tab.id
+                  ? 'text-[#F86F4D] border-b-2 border-[#F86F4D]'
+                  : 'text-[#1B263B]/60 hover:text-[#1B263B]'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Contenu des onglets */}
+      <div className="bg-white rounded-lg border border-[#1B263B]/10 p-4 sm:p-6 w-full">
+        {getFilteredRendezVous().length === 0 ? (
+          <div className="text-center py-12">
+          <div className="mx-auto w-16 h-16 bg-[#F86F4D]/10 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-[#F86F4D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-[#1B263B] mb-2">
+              Aucun rendez-vous
+          </h3>
+            <p className="text-[#1B263B]/70">
+              Vous n'avez pas de rendez-vous dans cette catégorie.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4 w-full">
+            {getFilteredRendezVous().map((rdv, index) => (
+              <div
+                key={rdv.id}
+                className="bg-white rounded-lg border border-[#1B263B]/10 p-4 sm:p-6 hover:shadow-md transition-shadow w-full relative"
+              >
+                {/* Boutons d'action en haut à gauche (desktop seulement) */}
+                <div className="hidden sm:flex absolute top-3 right-3 gap-2">
+                  <button
+                    onClick={() => handleVoirDetails(rdv)}
+                    className="px-3 py-2 text-sm font-medium text-[#F86F4D] hover:bg-[#F86F4D]/10 rounded-md transition-colors flex items-center justify-center gap-1"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                    Détails
+                  </button>
+                  
+                  {rdv.statut === "pending" && (
+                    <button
+                      onClick={() => handleCancelDemande(rdv.id)}
+                      className="px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  )}
+                  
+                  {rdv.statut === "completed" && rdv.compteRendu && (
+                    <button
+                      onClick={() => handleVoirCompteRendu(rdv)}
+                      className="px-3 py-2 text-sm font-medium text-green-600 hover:bg-green-50 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <HeartIcon className="w-4 h-4" />
+                      Compte-rendu
+                    </button>
+                  )}
+                </div>
+
+                {/* En-tête avec nom et statut */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 pr-32 sm:pr-32">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <h3 className="text-base sm:text-lg font-semibold text-[#1B263B]">
+                      {rdv.pro.nom}
+                    </h3>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full self-start ${getStatutColor(rdv.statut)}`}>
+                      {getStatutLabel(rdv.statut)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Informations principales */}
+                <div className="space-y-2 mb-4 min-w-0">
+                  <div className="text-sm text-[#1B263B]/70 break-words">
+                    <span className="font-medium">Professionnel:</span> {rdv.pro.metier}
+                  </div>
+                  <div className="text-sm text-[#1B263B]/70 break-words">
+                    <span className="font-medium">Ville:</span> {rdv.pro.ville}
+                  </div>
+                  <div className="text-sm text-[#1B263B]/70 break-words">
+                    <span className="font-medium">Équidé:</span> {rdv.cheval.nom} ({rdv.cheval.race}, {rdv.cheval.age})
+                  </div>
+                  <div className="text-sm text-[#1B263B]/70 break-words">
+                    <span className="font-medium">Date:</span> {formatDate(rdv.date)} à {rdv.heure}
+                  </div>
+                  <div className="text-sm text-[#1B263B]/70 break-words">
+                    <span className="font-medium">Motif:</span> {rdv.motif}
+                  </div>
+                  <div className="text-sm text-[#1B263B]/60 break-words">
+                    {rdv.adresse}
+                  </div>
+                </div>
+
+                {/* Boutons d'action en bas (mobile seulement) */}
+                <div className="flex sm:hidden flex-col gap-2">
+                  <button
+                    onClick={() => handleVoirDetails(rdv)}
+                    className="px-3 py-2 text-sm font-medium text-[#F86F4D] hover:bg-[#F86F4D]/10 rounded-md transition-colors flex items-center justify-center gap-1"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                    Détails
+                  </button>
+                  
+                  {rdv.statut === "pending" && (
+                    <button
+                      onClick={() => handleCancelDemande(rdv.id)}
+                      className="px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  )}
+                  
+                  {rdv.statut === "completed" && rdv.compteRendu && (
+                    <button
+                      onClick={() => handleVoirCompteRendu(rdv)}
+                      className="px-3 py-2 text-sm font-medium text-green-600 hover:bg-green-50 rounded-md transition-colors flex items-center justify-center gap-1"
+                    >
+                      <HeartIcon className="w-4 h-4" />
+                      Compte-rendu
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Modal de détails */}
+      <AnimatePresence>
+        {isModalOpen && selectedRdv && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={closeModal}
+            />
+            
+            <motion.div
+              className="relative bg-white rounded-xl shadow-2xl max-w-full sm:max-w-2xl w-full max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+            >
+              {/* En-tête */}
+              <div className="flex items-center justify-between p-3 sm:p-6 border-b border-gray-200 bg-white">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-sm sm:text-lg font-semibold text-gray-900">
+                      Détails du rendez-vous
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">
+                      {selectedRdv.pro.nom} - {selectedRdv.cheval.nom}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                >
+                  <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
+
+              {/* Contenu */}
+              <div className="p-3 sm:p-6 overflow-y-auto flex-1">
+                <div className="space-y-3 sm:space-y-6">
+                  {/* Informations principales */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Date</p>
+                        <p className="text-sm text-[#1B263B]">
+                          {formatDate(selectedRdv.date)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Heure</p>
+                        <p className="text-sm text-[#1B263B]">{selectedRdv.heure}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Professionnel</p>
+                        <p className="text-sm text-[#1B263B]">{selectedRdv.pro.nom}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Spécialité</p>
+                        <p className="text-sm text-[#1B263B]">{selectedRdv.pro.metier}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Ville</p>
+                        <p className="text-sm text-[#1B263B]">{selectedRdv.pro.ville}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Statut</p>
+                        <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getStatutColor(selectedRdv.statut)}`}>
+                          {getStatutLabel(selectedRdv.statut)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Adresse</p>
+                    <p className="text-sm text-[#1B263B] break-words">
+                      {selectedRdv.adresse}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Équidé</p>
+                    <p className="text-sm text-[#1B263B]">
+                      {selectedRdv.cheval.nom} - {selectedRdv.cheval.race} ({selectedRdv.cheval.age})
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-[#1B263B]/70 mb-1">Motif</p>
+                    <p className="text-sm text-[#1B263B]/70 bg-gray-50 rounded-lg p-2 sm:p-3">
+                      {selectedRdv.motif}
+                    </p>
+                  </div>
+                  
+                  {/* Créneaux alternatifs */}
+                  {selectedRdv.creneauxAlternatifs && selectedRdv.creneauxAlternatifs.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-[#1B263B]/70 mb-2">Créneaux alternatifs proposés</p>
+                      <div className="space-y-2">
+                        {selectedRdv.creneauxAlternatifs.map((creneau, index) => (
+                          <div key={index} className="bg-gray-50 rounded-lg p-2 sm:p-3">
+                            <p className="text-sm text-[#1B263B]">
+                              {formatDate(creneau.date)} à {creneau.heure}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Pied */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-3 sm:p-6 border-t border-gray-200 bg-gray-50">
+                <button
+                  onClick={closeModal}
+                  className="flex-1 sm:flex-none px-4 py-2.5 text-[#1B263B]/60 border border-[#1B263B]/20 rounded-lg hover:bg-[#1B263B]/5 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de compte-rendu */}
+      <AnimatePresence>
+        {isCompteRenduModalOpen && selectedRdv && selectedRdv.compteRendu && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={closeCompteRenduModal}
+            />
+            
+            <motion.div
+              className="relative bg-white rounded-xl shadow-2xl max-w-full sm:max-w-4xl w-full max-h-[92vh] sm:max-h-[85vh] overflow-hidden flex flex-col"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+            >
+              {/* En-tête */}
+              <div className="flex items-center justify-between p-3 sm:p-6 border-b border-gray-200 bg-white">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-sm sm:text-lg font-semibold text-gray-900">
+                      Compte-rendu du rendez-vous
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">
+                      {selectedRdv.pro.nom} - {selectedRdv.cheval.nom}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatDate(selectedRdv.date)} à {selectedRdv.heure}
+                    </p>
+                  </div>
+                </div>
+                    <button
+                  onClick={closeCompteRenduModal}
+                  className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                >
+                  <XMarkIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
+
+              {/* Contenu */}
+              <div className="p-3 sm:p-6 overflow-y-auto flex-1">
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Informations du rendez-vous */}
+                  <div className="bg-gray-50 rounded-lg p-2 sm:p-4">
+                    <h3 className="text-xs sm:text-base font-medium text-[#1B263B] mb-2">Informations du rendez-vous</h3>
+                    <div className="text-xs sm:text-sm">
+                      <div>
+                        <span className="font-medium text-[#1B263B]/70">Motif:</span>
+                        <span className="ml-2 text-[#1B263B]">{selectedRdv.motif}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Compte-rendu */}
+                  <div className="space-y-3">
+                    <h3 className="text-xs sm:text-base font-medium text-[#1B263B] mb-3">Compte-rendu du professionnel</h3>
+                    
+                    <div>
+                      <h4 className="text-xs font-medium text-[#1B263B]/70 mb-2">État général de l'équidé</h4>
+                      <p className="text-xs sm:text-sm text-[#1B263B] bg-gray-50 rounded-lg p-2 sm:p-3">{selectedRdv.compteRendu.etatGeneral}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-xs font-medium text-[#1B263B]/70 mb-2">Observations cliniques</h4>
+                      <p className="text-xs sm:text-sm text-[#1B263B] bg-gray-50 rounded-lg p-2 sm:p-3">{selectedRdv.compteRendu.observations}</p>
+                    </div>
+                    
+                    {selectedRdv.compteRendu.procedures && (
+                      <div>
+                        <h4 className="text-xs font-medium text-[#1B263B]/70 mb-2">Procédures effectuées</h4>
+                        <p className="text-xs sm:text-sm text-[#1B263B] bg-gray-50 rounded-lg p-2 sm:p-3">{selectedRdv.compteRendu.procedures}</p>
+                      </div>
+                    )}
+                    
+                    {selectedRdv.compteRendu.medicaments && (
+                      <div>
+                        <h4 className="text-xs font-medium text-[#1B263B]/70 mb-2">Médicaments administrés</h4>
+                        <p className="text-xs sm:text-sm text-[#1B263B] bg-gray-50 rounded-lg p-2 sm:p-3">{selectedRdv.compteRendu.medicaments}</p>
+                      </div>
+                    )}
+                    
+                    {selectedRdv.compteRendu.recommandations && (
+                      <div>
+                        <h4 className="text-xs font-medium text-[#1B263B]/70 mb-2">Recommandations</h4>
+                        <p className="text-xs sm:text-sm text-[#1B263B] bg-gray-50 rounded-lg p-2 sm:p-3">{selectedRdv.compteRendu.recommandations}</p>
+                      </div>
+                    )}
+                    
+                    {selectedRdv.compteRendu.suivi && (
+                      <div>
+                        <h4 className="text-xs font-medium text-[#1B263B]/70 mb-2">Suivi recommandé</h4>
+                        <p className="text-xs sm:text-sm text-[#1B263B] bg-gray-50 rounded-lg p-2 sm:p-3">{selectedRdv.compteRendu.suivi}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Pied */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-3 sm:p-6 border-t border-gray-200 bg-gray-50">
+                <button
+                  onClick={closeCompteRenduModal}
+                  className="flex-1 sm:flex-none px-4 py-2.5 text-[#1B263B]/60 border border-[#1B263B]/20 rounded-lg hover:bg-[#1B263B]/5 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
+            </motion.div>
+        </div>
+      )}
+      </AnimatePresence>
+    </div>
+  );
+}
