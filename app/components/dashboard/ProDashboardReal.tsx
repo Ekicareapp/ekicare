@@ -12,13 +12,13 @@ import {
 } from "@heroicons/react/24/outline";
 import VueMensuelleCompacte from "./VueMensuelleCompacte";
 import { useRendezVous, useProStats, useClients, useDemandes } from "@/hooks/useApiData";
-import { useSession } from "next-auth/react";
+import { useSessionSafe } from "@/hooks/useSessionSafe";
 import { useState, useEffect } from "react";
 import CleanDataButton from "@/app/components/ui/CleanDataButton";
 import CreateTablesButton from "@/app/components/ui/CreateTablesButton";
 
 export default function ProDashboardReal() {
-  const { data: session } = useSession();
+  const { data: session } = useSessionSafe();
   const { rendezVous, loading: rendezVousLoading } = useRendezVous();
   const { stats, loading: statsLoading } = useProStats();
   const { clients, loading: clientsLoading } = useClients();

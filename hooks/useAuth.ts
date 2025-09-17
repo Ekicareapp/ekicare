@@ -1,12 +1,30 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const useAuth = (requiredRole?: string) => {
-  const { data: session, status } = useSession();
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
 
+  // Vérifier si on est côté client
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Utiliser useSession seulement côté client
+  let session, status;
+  try {
+    const sessionData = useSession();
+    session = sessionData.data;
+    status = sessionData.status;
+  } catch (error) {
+    // Si NextAuth n'est pas configuré, utiliser des valeurs par défaut
+    session = null;
+    status = "unauthenticated";
+  }
+
+  useEffect(() => {
+    if (!isClient) return; // Ne pas exécuter côté serveur
     if (status === "loading") return; // Still loading
 
     if (!session) {
@@ -25,11 +43,11 @@ export const useAuth = (requiredRole?: string) => {
         return;
       }
     }
-  }, [session, status, router, requiredRole]);
+  }, [session, status, router, requiredRole, isClient]);
 
   return {
     user: session?.user,
-    isLoading: status === "loading",
+    isLoading: !isClient || status === "loading",
     isAuthenticated: !!session,
   };
 };

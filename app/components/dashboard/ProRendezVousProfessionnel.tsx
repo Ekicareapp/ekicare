@@ -20,7 +20,7 @@ import ExportButton from "../ui/ExportButton";
 import FileUpload from "../ui/FileUpload";
 import { useRendezVous, useDemandes } from "@/hooks/useApiData";
 import { useDisponibilites } from "@/hooks/useDisponibilites";
-import { useSession } from "next-auth/react";
+import { useSessionSafe } from "@/hooks/useSessionSafe";
 import { useToast, ToastContainer } from "@/app/components/ui/Toast";
 
 // Types - Interface simplifiée avec any pour éviter les erreurs TypeScript
@@ -98,7 +98,7 @@ const getStatutLabel = (statut: string) => {
 };
 
 export default function ProRendezVousProfessionnel() {
-  const { data: session } = useSession();
+  const { data: session } = useSessionSafe();
   const [activeTab, setActiveTab] = useState('demandes');
   const [localDemandes, setLocalDemandes] = useState<any[]>([]);
   const { toasts, success, error: showError, removeToast } = useToast();
