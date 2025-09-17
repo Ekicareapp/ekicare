@@ -1,7 +1,7 @@
 // Configuration pour l'API Google Places
 export const GOOGLE_PLACES_CONFIG = {
   // TODO: Ajouter votre clé API Google Places ici
-  apiKey: process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY || '',
+  apiKey: process.env.GOOGLE_PLACES_API_KEY || '',
   // Configuration pour l'autocomplétion
   autocomplete: {
     types: ['address'], // Adresses complètes
